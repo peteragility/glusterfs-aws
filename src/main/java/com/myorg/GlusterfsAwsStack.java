@@ -17,8 +17,6 @@ import software.amazon.awscdk.services.ec2.EbsDeviceOptions;
 import software.amazon.awscdk.services.ec2.EbsDeviceVolumeType;
 import software.amazon.awscdk.services.ec2.IVpc;
 import software.amazon.awscdk.services.ec2.Instance;
-import software.amazon.awscdk.services.ec2.InstanceClass;
-import software.amazon.awscdk.services.ec2.InstanceSize;
 import software.amazon.awscdk.services.ec2.InstanceType;
 import software.amazon.awscdk.services.ec2.LookupMachineImageProps;
 import software.amazon.awscdk.services.ec2.MachineImage;
@@ -43,32 +41,44 @@ import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
 
 public class GlusterfsAwsStack extends Stack {
-    private static enum GlusterVolumeType {
-        REPLICATED,
-        DISTRIBUTED,
-        DISPERSED
-    }
 
     public GlusterfsAwsStack(final Construct parent, final String id) {
-        this(parent, id, null);
+        this(parent, id, null, new GlusterfsPara());
     }
 
-    public GlusterfsAwsStack(final Construct parent, final String id, final StackProps props) {
+    public GlusterfsAwsStack(final Construct parent, final String id, final StackProps props, final GlusterfsPara paras) {
         super(parent, id, props);
 
-        // Define the parameters++
-        final String vpcTagName = "glusterfsVpc";
-        final String amiName = "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04*";
-        final InstanceType instanceType = InstanceType.of(InstanceClass.COMPUTE5, InstanceSize.LARGE);
-        final GlusterVolumeType glusterVolType = GlusterVolumeType.DISPERSED;
-        final int brickCount = 3;
-        final int redundancyCount = 1;
-        final EbsDeviceVolumeType volumeType = EbsDeviceVolumeType.GP2;
-        final int volumeSizeGb = 50;
-        final int volumeIops = volumeSizeGb * 50;
-        final boolean volumeEncrypted = false;
-        final int glusterMountPort = 24007;
-        // Define the parameters--
+        final String vpcTagName = paras.getVpcTagName();
+        final String amiName = paras.getAmiName();
+        final InstanceType instanceType = paras.getInstanceType();
+        final GlusterfsPara.GlusterVolumeType glusterVolType = paras.getGlusterVolType();
+        final int brickCount = paras.getBrickCount();
+        final int redundancyCount = paras.getRedundancyCount();
+        final EbsDeviceVolumeType volumeType = paras.getVolumeType();
+        final int volumeSizeGb = paras.getVolumeSizeGb();
+        final int volumeIops = paras.getVolumeIops();
+        final boolean volumeEncrypted = paras.isVolumeEncrypted();
+        final int glusterMountPort = paras.getGlusterMountPort();
+
+        // Optional: generate ssh key pair
+        /*
+        JSch jsch = new JSch();
+        String sshPrivateKey = "";
+        String sshPublicKey = "";
+        try {
+            KeyPair kpair = KeyPair.genKeyPair(jsch, KeyPair.RSA, 2048);
+            ByteArrayOutputStream bao = new ByteArrayOutputStream();
+            kpair.writePrivateKey(bao);
+            sshPrivateKey = bao.toString();
+            bao = new ByteArrayOutputStream();
+            kpair.writePublicKey(bao, "glusterfs-nodes");
+            sshPublicKey = bao.toString();
+        } catch (JSchException e) {
+            e.printStackTrace();
+        }
+        */
+        // ended
 
         Map<String, String> VpcTags = new HashMap<>();
         VpcTags.put(vpcTagName, "true");
@@ -89,14 +99,19 @@ public class GlusterfsAwsStack extends Stack {
             userData.addCommands("sudo apt install software-properties-common",
                     "sudo add-apt-repository ppa:gluster/glusterfs-7 -y", 
                     "sudo apt update",
-                    "sudo apt install glusterfs-server glusterfs-client glusterfs-common -y",
-                    "sudo mkfs.xfs /dev/nvme1n1", 
+                    "sudo apt install glusterfs-server glusterfs-client glusterfs-common nfs-ganesha-gluster -y",
+                    "sudo mkfs.xfs /dev/nvme0n1", 
                     "sudo mkdir /gluster",
-                    "sudo sh -c \"echo '/dev/nvme1n1 /gluster xfs defaults 0 0' >> /etc/fstab\"", 
+                    "sudo sh -c \"echo '/dev/nvme0n1 /gluster xfs defaults 0 0' >> /etc/fstab\"", 
                     "sudo mount -a",
                     "sudo mkdir /gluster/brick", 
                     "sudo systemctl start glusterd");
                     
+            // Insert ssh keys for cross node communications
+            //userData.addCommands("sudo sh -c \"echo '" + sshPublicKey + "' >> /root/.ssh/authorized_keys\"");
+            //userData.addCommands("sudo sh -c \"echo '" + sshPublicKey + "' >> /var/lib/glusterd/nfs/secret.pem.pub\"");
+            //userData.addCommands("sudo sh -c \"echo '" + sshPrivateKey + "' >> /var/lib/glusterd/nfs/secret.pem\"");
+            
             // Echo the gluster volume type, brick count and redundancy count in each instance's userdata
             // Which can help to trigger re-creation of instance after these config updated
             userData.addCommands("echo " + glusterVolType.name(), 
@@ -112,9 +127,9 @@ public class GlusterfsAwsStack extends Stack {
                 }
                 createVolCmd = createVolCmd + " $(hostname):/gluster/brick";
 
-                if(glusterVolType == GlusterVolumeType.DISTRIBUTED) {
+                if(glusterVolType == GlusterfsPara.GlusterVolumeType.DISTRIBUTED) {
                     userData.addCommands("sudo gluster volume create gfs" + createVolCmd);
-                } else if(glusterVolType == GlusterVolumeType.DISPERSED) {
+                } else if(glusterVolType == GlusterfsPara.GlusterVolumeType.DISPERSED) {
                     userData.addCommands("sudo gluster volume create gfs disperse " + brickCount 
                         + " redundancy " + redundancyCount + createVolCmd);
                 } else {
@@ -122,8 +137,15 @@ public class GlusterfsAwsStack extends Stack {
                 }
 
                 userData.addCommands("sudo gluster volume info");
-                //userData.addCommands("sudo gluster volume set gfs nfs.disable off");
                 userData.addCommands("sudo gluster volume start gfs");
+
+                // enable shared storage and nfs-ganesha
+                userData.addCommands("sudo gluster volume set all cluster.enable-shared-storage enable",
+                        "sleep 20",
+                        "sudo cp /etc/ganesha/gluster.conf /etc/ganesha/ganesha.conf",
+                        "sudo sh -c \"sed -i 's/testvol/gfs/g' /etc/ganesha/ganesha.conf\"",
+                        "sudo systemctl stop nfs-ganesha",
+                        "sudo systemctl start nfs-ganesha");
             }
 
             BlockDevice brickBlock = null;
@@ -159,6 +181,8 @@ public class GlusterfsAwsStack extends Stack {
                     dependable.add(inst);
                 }
                 myInstance.getNode().addDependency(dependable);
+
+                CfnOutput.Builder.create(this, "GlusterNFSEndpoint").value(myInstance.getInstancePrivateDnsName()).build();
             }
             
             // Append instance private dns to the list
@@ -168,7 +192,7 @@ public class GlusterfsAwsStack extends Stack {
         // Add network load balancer++
         NetworkLoadBalancer myNlb = NetworkLoadBalancer.Builder.create(this, "GlusterNLB")
             .crossZoneEnabled(false).internetFacing(false).loadBalancerName("GlusterNLB")
-            .vpc(myVpc).vpcSubnets(SubnetSelection.builder().onePerAz(false).subnetType(SubnetType.PRIVATE).build())
+            .vpc(myVpc).vpcSubnets(SubnetSelection.builder().onePerAz(true).subnetType(SubnetType.PRIVATE).build())
             .build();
 
         NetworkTargetGroup targetGroup = NetworkTargetGroup.Builder.create(this, "GlusterTargetGroup")
@@ -186,10 +210,9 @@ public class GlusterfsAwsStack extends Stack {
         targetGroupList.add(targetGroup);
 
         myNlb.addListener("GlusterListener", NetworkListenerProps.builder().port(glusterMountPort).loadBalancer(myNlb).defaultAction(NetworkListenerAction.forward(targetGroupList)).build());
+
+        CfnOutput.Builder.create(this, "GlusterNLBEndpoint").value(myNlb.getLoadBalancerDnsName()).build();
         // Add network load balancer--
 
-        // Output cfn results ++
-        CfnOutput.Builder.create(this, "GlusterNlbEndpoint").value(myNlb.getLoadBalancerDnsName()).build();
-        // Output cfn results --
     }
 }
