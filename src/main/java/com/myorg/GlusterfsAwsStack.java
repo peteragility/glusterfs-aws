@@ -144,6 +144,7 @@ public class GlusterfsAwsStack extends Stack {
                         "sleep 20",
                         "sudo cp /etc/ganesha/gluster.conf /etc/ganesha/ganesha.conf",
                         "sudo sh -c \"sed -i 's/testvol/gfs/g' /etc/ganesha/ganesha.conf\"",
+                        "sudo sh -c \"sed -i 's/Squash.*/&\\n\\n\\t# NFS3 Only\\n\\tProtocols = \\\"3\\\";/' /etc/ganesha/ganesha.conf\"",
                         "sudo systemctl stop nfs-ganesha",
                         "sudo systemctl start nfs-ganesha");
             }
