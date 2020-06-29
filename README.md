@@ -4,9 +4,9 @@ This Quick Start deploys GlusterFS v7 on the Amazon Web Services (AWS) Cloud.
 
 GlusterFS is a scalable network filesystem suitable for data-intensive tasks such as cloud storage and media streaming. GlusterFS is free and open source software and can utilize common off-the-shelf hardware. To learn more, please see [the Gluster project home page](https://www.gluster.org/).
 
-Setup a GlusterFS cluster is not an easy task, by using this quick start which is based on AWS Cloud Development Kit (AWS CDK), a Gluster file system can be spinned up in AWS within minutes and clients can access the file system by native Gluster mount or NFSv3 mount.
+Setup a GlusterFS cluster is not an easy task, by using this quick start which is based on AWS Cloud Development Kit (AWS CDK), a Gluster filesystem can be spinned up in AWS within minutes and clients can access the filesystem by native Gluster mount or NFSv3 mount.
 
-> Notice ongoing maintenance of a GlusterFS cluster is your responsbility, like adding new bricks, replacing faulty bricks and managing snapshots, detail documentation can be found [here](https://docs.gluster.org/en/latest/Administrator%20Guide/overview/). This is why fully managed file system like [Amazon EFS](https://aws.amazon.com/efs/) is always preferred, however there are use cases that GlusterFS maybe more suitable, we will discuss this later.
+> Notice ongoing maintenance of a GlusterFS cluster is your responsbility, like adding new bricks, replacing faulty bricks and managing snapshots, detail documentation can be found [here](https://docs.gluster.org/en/latest/Administrator%20Guide/overview/). This is why fully managed filesystem like [Amazon EFS](https://aws.amazon.com/efs/) is always preferred, however there are use cases that GlusterFS maybe more suitable, we will discuss this later.
 
 The quick start implements the followings:
 
@@ -18,18 +18,16 @@ The quick start implements the followings:
 ### Index
 
 - [Use Cases](#use-cases)
-- [Architecture](#architecture)
+- [Gluster Volume Type](#gluster-volume-type)
 - [Usage](#usage)
   - [Prerequisites](#prerequisites)
   - [Deployment](#deployment)
   - [Mount GlusterFS by Native Client](#mount-glusterfs-by-native-client)
   - [Mount GlusterFS by NFSv3](#mount-glusterfs-by-nfsv3)
 - [Performance Testing](#performance-testing)
-  - [File System Benchmarks for 100kb Files](#file-system-benchmarks-for-100kb-files)
-  - [File System Benchmarks for 1mb Files](#file-system-benchmarks-for-1mb-files)
+  - [Filesystem Benchmarks for 100kb Files](#filesystem-benchmarks-for-100kb-files)
+  - [Filesystem Benchmarks for 1mb Files](#filesystem-benchmarks-for-1mb-files)
   - [Key Takeaway](#key-takeaway)
-- [Making changes to the code and customization](#making-changes-to-the-code-and-customization)
-- [Contributing](#contributing)
 
 ### Use Cases
 
@@ -38,13 +36,34 @@ The quick start implements the followings:
 - **Service Availability.** In some AWS regions or in AWS Outposts, where Amazon EFS not yet available, you can build a GlusterFS using EC2/EBS for shared file storage.
 - **Lift and Shift GlusterFS to AWS.** If you are already using GlusterFS on-premises or in other clouds, and want the quickest way to migrate to AWS.
 
+### Gluster Volume Type
+A volume in Gluster is a logical collection of bricks where each brick is an export directory on a EC2/EBS in the trusted storage pool. Before creating a Gluster filesystem you should consider which volume type to create carefully:
+- **Distributed** - Distributed volumes distribute files across the bricks in the volume. You can use distributed volumes where the requirement is to scale storage and the redundancy is either not important or is provided by other hardware/software layers.
+- **Replicated** – Replicated volumes replicate files across bricks in the volume. You can use replicated volumes in environments where high-availability and high-reliability are critical.
+- **Dispersed** - Dispersed volumes are based on erasure codes, providing space-efficient protection against disk or server failures. It stores an encoded fragment of the original file to each brick in a way that only a subset of the fragments is needed to recover the original file. The number of bricks that can be missing without losing access to data is configured by the administrator on volume creation time.
+
+The above Gluster volume types are supported in this quick start. Gluster also has **Distributed Replicated** and **Distributed Dispersed** volume types, they are not supported in this quick start, please refer to [Gluster documentation](https://docs.gluster.org/en/latest/Administrator%20Guide/Setting%20Up%20Volumes/)
+
+Here is a quick summary for different volume types:
+| Volume Type | Brick (EC2) Count | Redundancy Count | Filesystem Size  | Max. no. of EC2s can be down |
+|-------------|-------------------|------------------|------------------|------------------------------|
+| Distributed | n                 | /                | EBS Size * n     | 0                            |
+| Replicated  | n                 | /                | EBS Size         | n - 1                          |
+| Dispersed   | n                 | k                | EBS Size * (n - k) | k                            |
+
+> - Distributed volume has the best performance and bricks can be added very easily. But it has no redundancy at all, any EC2/EBS lost will cause data lost.
+> - In theory replicated volume can lost up to n - 1 nodes, for example if n = 3 the filesystem should be able to operate normally with only 1 node. However you will find that the filesystem is down if node count < 2, this is because the default quorum = 2 in this case to avoid [Split Brain](https://docs.gluster.org/en/latest/Administrator%20Guide/Split%20brain%20and%20ways%20to%20deal%20with%20it/) issue.
+> - For data durability, replicated volume can lost up to n - 1 nodes.
+> - For dispersed volume, k must be an integer smaller than n/2, if you want k >= n/2, pls use replicated volume instead.
+> - For best I/O performance, you should make sure `(n - k) = power of 2`, for example n=3 and k=1, n=6 and k=2, etc.
+
 ### Usage
 
 #### Prerequisites
 
-To deploy the GlusterFS quick start, you will require an AWS account, prepare a VPC tagged with glusterfsVpc=true and private subnets that have outbound internet access only, GlusterFS will be automatically setup in the VPC and subnets.
+To deploy the GlusterFS quick start, you will require an AWS account, prepare a VPC tagged with `glusterfsVpc=true` and private subnets which have outbound internet access only, GlusterFS will be automatically setup in the VPC and subnets.
 
-When ECs are launched they need to download and install Gluster related packages, internet access can be turned off after GlusterFS is setup, to ensure the cluster run in a private protected network.
+Gluster related packages are downloaded and installed in the EC2s when they are spinning up, internet access can be turned off after GlusterFS is setup, to ensure the filesystem run in a private protected network.
 
 #### Deployment
 1. Install AWS CLI v2 in your workstation, according to this [guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html).
@@ -82,7 +101,7 @@ When ECs are launched they need to download and install Gluster related packages
    ```
    mvn package
    ```
-10. Deploy to AWS!
+10. Ensure an AWS VPC is tagged with `glusterfsVpc=true`, deploy GlusterFS to this VPC by:
     ```
     cdk deploy
     ```
@@ -107,7 +126,7 @@ The Gluster Native Client is a FUSE-based client running in user space. Gluster 
 4. Run command: `sudo mount -a`
 5. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfs mount point if things went well.
 
-> Notice that the GlusterNLBEndpoint only serves as a single endpoint for mounting and getting GlusterFS cluster info, the clients actually communicate with EC2s in the cluster directly when writing/reading files.
+> Notice the GlusterNLBEndpoint only serves as a single endpoint for mounting and getting GlusterFS cluster info, the clients actually communicate with EC2s in the cluster directly when writing/reading files.
 
 #### Mount GlusterFS by NFSv3
 The quick start has setup a [NFS Ganesha server](https://docs.gluster.org/en/latest/Administrator%20Guide/NFS-Ganesha%20GlusterFS%20Integration/) and export GlusterFS via NFSv3 protocol, so every client machine can mount the GlusterFS with NFSv3.
@@ -123,12 +142,12 @@ Remember this is **NOT** the recommend way to mount GlusterFS, but if the client
 5. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfsnfs mount point if things went well.
 
 ### Performance Testing
-Basic file system performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
-- RHEL v8.2 EC2 (t3.medium) as the testing client, all file systems are mounted in this EC2.
-- 8 threads are running to write/read files in the file systems.
+Basic filesystem performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
+- RHEL v8.2 EC2 (t3.medium) as the testing client, all filesystems are mounted in this EC2.
+- 8 threads are running to write/read files in the filesystems.
 - The test is done for write/read 2048 files of 100kb per thread, and repeat for write/read 2048 files of 1mb.
 
-#### File System Benchmarks for 100kb Files
+#### Filesystem Benchmarks for 100kb Files
 | Setup                                                             | EC2/EBS Type            | Write IOPS (100kb) | Read IOPS (100kb) | Write Throughput (mb/sec) | Read Throughput (mb/sec) |
 |-------------------------------------------------------------------|-------------------------|--------------------|-------------------|---------------------------|--------------------------|
 | Gluster **Distributed** Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS | 2092               | 2345              | 204                       | 229                      |
@@ -140,7 +159,7 @@ Basic file system performance benchmarks are collected using python script [smal
 | Amazon EBS (gp2)                                                  | c5.large, 10gb gp2 EBS  | 3203               | 1423              | 312                       | 138                      |
 | Amazon EFS (General purpose, bursting throughput)                 | /                       | 415                | 3337              | 40                        | 325                      |
 
-#### File System Benchmarks for 1mb Files
+#### Filesystem Benchmarks for 1mb Files
 | Setup                                                             | EC2/EBS Type            | Write IOPS (1mb) | Read IOPS (1mb) | Write Throughput (mb/sec) | Read Throughput (mb/sec) |
 |-------------------------------------------------------------------|-------------------------|------------------|-----------------|---------------------------|--------------------------|
 | Gluster **Distributed** Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS  | 472              | 407             | 461                       | 398                      |
@@ -157,4 +176,4 @@ Basic file system performance benchmarks are collected using python script [smal
 - While Amazon EFS has better read performance than GlusterFS for 100kb files.
 - Gluster **Distributed** volume type has the best performance.
 
-> Notice that EBS (gp2) has a baseline IOPS of `3 * volume size` which can be bursted to 3,000 IOPS for an extended period of time ([detail](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html)). To achieve consistent IOPS performance, you can provision EBS of over 1TB in size. 
+> Notice that EBS (gp2) has a baseline IOPS of `3 * volume size` which can be bursted to 3,000 IOPS for an extended period of time ([detail](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html)). To achieve consistent IOPS performance, you can provision EBS of over 1TB in size.
