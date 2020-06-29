@@ -24,6 +24,7 @@ The quick start implements the followings:
   - [Deployment](#deployment)
   - [Mount GlusterFS by Native Client](#mount-glusterfs-by-native-client)
   - [Mount GlusterFS by NFSv3](#mount-glusterfs-by-nfsv3)
+  - [Use GlusterFS in Kubernetes](#use-glusterfs-in-kubernetes)
 - [Performance Testing](#performance-testing)
   - [Filesystem Benchmarks for 100kb Files](#filesystem-benchmarks-for-100kb-files)
   - [Filesystem Benchmarks for 1mb Files](#filesystem-benchmarks-for-1mb-files)
@@ -118,14 +119,15 @@ Gluster related packages are downloaded and installed in the EC2s when they are 
 
 #### Mount GlusterFS by Native Client
 The Gluster Native Client is a FUSE-based client running in user space. Gluster Native Client is **the recommended method** for accessing volumes when high concurrency and high write performance is required.
-1. Install GlusterFS client in client machines by `yum install glusterfs-client` (redhat/centos/fedora) or `apt install glusterfs-client` (ubuntu/debian)
-2. Create a mount point directory at /mnt/gfs (or any name you preferred)
-3. Open /etc/fstab, append the following line, replace GlusterNLBEndpoint with the actual endpoint:
+1. Ensure GlusterFS security group is added to your client EC2 instances.
+2. Install GlusterFS client in client machines by `yum install glusterfs-client` (redhat/centos/fedora) or `apt install glusterfs-client` (ubuntu/debian)
+3. Create a mount point directory at /mnt/gfs (or any name you preferred)
+4. Open /etc/fstab, append the following line, replace GlusterNLBEndpoint with the actual endpoint:
     ```
     GlusterNLBEndpoint:/gfs /mnt/gfs glusterfs defaults,_netdev 0 0
     ```
-4. Run command: `sudo mount -a`
-5. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfs mount point if things went well.
+5. Run command: `sudo mount -a`
+6. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfs mount point if things went well.
 
 > Notice the GlusterNLBEndpoint only serves as a single endpoint for mounting and getting GlusterFS cluster info, the clients actually communicate with EC2s in the cluster directly when writing/reading files.
 
@@ -133,14 +135,18 @@ The Gluster Native Client is a FUSE-based client running in user space. Gluster 
 The quick start has setup a [NFS Ganesha server](https://docs.gluster.org/en/latest/Administrator%20Guide/NFS-Ganesha%20GlusterFS%20Integration/) and export GlusterFS via NFSv3 protocol, so every client machine can mount the GlusterFS with NFSv3.
 Remember this is **NOT** the recommend way to mount GlusterFS, but if the clients can not install GlusterFS native client or you want to use service like [AWS DataSync](https://aws.amazon.com/datasync/), this is the only solution.
 
-1. Most Linux distributions have NFS client packages included, if not, simply install the `nfs-common` package.
-2. Create a mount point directory at /mnt/gfsnfs (or any name you preferred)
-3. Open /etc/fstab, append the following line, replace GlusterNFSEndpoint with the actual NFS endpoint:
+1. Ensure GlusterFS security group is added to your client EC2 instances.
+2. Most Linux distributions have NFS client packages included, if not, simply install the `nfs-common` package.
+3. Create a mount point directory at /mnt/gfsnfs (or any name you preferred)
+4. Open /etc/fstab, append the following line, replace GlusterNFSEndpoint with the actual NFS endpoint:
     ```
     GlusterNFSEndpoint:/gfs /mnt/gfsnfs nfs defaults 0 0
     ```
-4. Run command: `sudo mount -a`
-5. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfsnfs mount point if things went well.
+5. Run command: `sudo mount -a`
+6. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfsnfs mount point if things went well.
+
+#### Use GlusterFS in Kubernetes
+There is a [Container Storage Interface (CSI) Driver for GlusterFS](https://kubernetes-csi.github.io/docs/drivers.html) can be used with Kubernetes, so that multiple k8s pods can read/write the shared and persistant Gluster filesystem. You can also use the CSI driver with [Amazon EKS](https://aws.amazon.com/eks/).
 
 ### Performance Testing
 Basic filesystem performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
