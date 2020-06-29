@@ -6,7 +6,7 @@ GlusterFS is a scalable network filesystem suitable for data-intensive tasks suc
 
 Setup a GlusterFS cluster is not an easy task, by using this quick start which is based on AWS Cloud Development Kit (AWS CDK), a Gluster file system can be spinned up in AWS within minutes and clients can access the file system by native Gluster mount or NFSv3 mount.
 
-Notice ongoing maintenance of a GlusterFS cluster is your responsbility, like adding new bricks, replacing faulty bricks and managing snapshots, detail documentation can be found [here](https://docs.gluster.org/en/latest/Administrator%20Guide/overview/). This is why fully managed file system like [Amazon EFS](https://aws.amazon.com/efs/) is always preferred, however there are use cases that GlusterFS maybe more suitable, we will discuss this later.
+> Notice ongoing maintenance of a GlusterFS cluster is your responsbility, like adding new bricks, replacing faulty bricks and managing snapshots, detail documentation can be found [here](https://docs.gluster.org/en/latest/Administrator%20Guide/overview/). This is why fully managed file system like [Amazon EFS](https://aws.amazon.com/efs/) is always preferred, however there are use cases that GlusterFS maybe more suitable, we will discuss this later.
 
 The quick start implements the followings:
 
@@ -105,9 +105,9 @@ The Gluster Native Client is a FUSE-based client running in user space. Gluster 
     GlusterNLBEndpoint:/gfs /mnt/gfs glusterfs defaults,_netdev 0 0
     ```
 4. Run command: `sudo mount -a`
-5. Run command: `df`, you should be able to see volume info of GlusterFS at /mnt/gfs mount point if things go well.
+5. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfs mount point if things went well.
 
-Notice that the GlusterNLBEndpoint only serves as a single endpoint for mounting and getting GlusterFS cluster info, the clients actually communicate with EC2s in the cluster directly when writing/reading files.
+> Notice that the GlusterNLBEndpoint only serves as a single endpoint for mounting and getting GlusterFS cluster info, the clients actually communicate with EC2s in the cluster directly when writing/reading files.
 
 #### Mount GlusterFS by NFSv3
 The quick start has setup a [NFS Ganesha server](https://docs.gluster.org/en/latest/Administrator%20Guide/NFS-Ganesha%20GlusterFS%20Integration/) and export GlusterFS via NFSv3 protocol, so every client machine can mount the GlusterFS with NFSv3.
@@ -120,7 +120,7 @@ Remember this is **NOT** the recommend way to mount GlusterFS, but if the client
     GlusterNFSEndpoint:/gfs /mnt/gfsnfs nfs defaults 0 0
     ```
 4. Run command: `sudo mount -a`
-5. Run command: `df`, you should be able to see volume info of GlusterFS at /mnt/gfsnfs mount point if things go well.
+5. Run command: `df`, you will see volume info of GlusterFS at /mnt/gfsnfs mount point if things went well.
 
 ### Performance Testing
 Basic file system performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
@@ -156,4 +156,5 @@ Basic file system performance benchmarks are collected using python script [smal
 - GlusterFS has better write performance than Amazon EFS for both 100kb and 1mb files.
 - While Amazon EFS has better read performance than GlusterFS for 100kb files.
 - Gluster **Distributed** volume type has the best performance.
-- Notice that EBS (gp2) has a baseline IOPS of `3 * volume size` which can be bursted to 3,000 IOPS for an extended period of time ([detail](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html)). To achieve consistent IOPS performance, you can provision EBS of over 1TB in size. 
+
+> Notice that EBS (gp2) has a baseline IOPS of `3 * volume size` which can be bursted to 3,000 IOPS for an extended period of time ([detail](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html)). To achieve consistent IOPS performance, you can provision EBS of over 1TB in size. 
