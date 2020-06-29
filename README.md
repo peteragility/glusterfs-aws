@@ -4,16 +4,16 @@ This Quick Start deploys GlusterFS v7 on the Amazon Web Services (AWS) Cloud.
 
 GlusterFS is a scalable network filesystem suitable for data-intensive tasks such as cloud storage and media streaming. GlusterFS is free and open source software and can utilize common off-the-shelf hardware. To learn more, please see [the Gluster project home page](https://www.gluster.org/).
 
-Setup a GlusterFS cluster is not an easy task, by using this quick start which is based on AWS Cloud Development Kit (AWS CDK), a Gluster file system can be spinned up in AWS in minutes and clients can access the file system by native Gluster mount or NFSv3 mount.
+Setup a GlusterFS cluster is not an easy task, by using this quick start which is based on AWS Cloud Development Kit (AWS CDK), a Gluster file system can be spinned up in AWS within minutes and clients can access the file system by native Gluster mount or NFSv3 mount.
 
-Notice that ongoing maintenace of a Gluster cluster become your responsbility, like adding new bricks, replacing faulty bricks, backup/snapshot, detail documentation can be found [here](https://docs.gluster.org/en/latest/Administrator%20Guide/overview/). This is why fully managed file system like [Amazon EFS](https://aws.amazon.com/efs/) is always preferred, however there are use cases that GlusterFS maybe more suitable, we will mention that later.
+Notice ongoing maintenance of a GlusterFS cluster is your responsbility, like adding new bricks, replacing faulty bricks and managing snapshots, detail documentation can be found [here](https://docs.gluster.org/en/latest/Administrator%20Guide/overview/). This is why fully managed file system like [Amazon EFS](https://aws.amazon.com/efs/) is always preferred, however there are use cases that GlusterFS maybe more suitable, we will discuss this later.
 
 The quick start implements the followings:
 
-- Deploy Ubuntu 18.04 EC2s with EBS to selected VPC, as Gluster compute/storage nodes
-- Setup Gluster system in every node, according to user selected Gluster volume type (distributed, dispersed or replicated)
-- Deploy a Network Load Balancer (NLB) in front of the cluster, listening on Gluster control port: 24007 
-- Deploy a Gluster security group, need to add client machines to this security group for them to mount Gluster file system
+- Deploy Ubuntu 18.04 EC2s with EBS to selected VPC, they are the Gluster compute and storage nodes.
+- Setup Gluster packages in every node, according to user selected Gluster volume type (distributed, dispersed or replicated)
+- Deploy a Network Load Balancer (NLB) in front of this cluster, listening on Gluster control port: 24007.
+- Deploy a security group of GlusterFS, client machines will be added to this security group to mount GlusterFS.
 
 ### Index
 
@@ -25,6 +25,8 @@ The quick start implements the followings:
   - [Mount GlusterFS by Native Client](#mount-glusterfs-by-native-client)
   - [Mount GlusterFS by NFSv3](#mount-glusterfs-by-nfsv3)
 - [Performance Testing](#performance-testing)
+  - [File System Benchmarks for 100kb Files](#file-system-benchmarks-for-100kb-files)
+  - [File System Benchmarks for 1mb Files](#file-system-benchmarks-for-1mb-files)
 - [Making changes to the code and customization](#making-changes-to-the-code-and-customization)
 - [Contributing](#contributing)
 
@@ -98,3 +100,32 @@ When ECs are launched they need to download and install Gluster related packages
 #### Mount GlusterFS by NFSv3
 
 ### Performance Testing
+Basic file system performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
+- RHEL v8.2 EC2 (t3.medium) is used as the testing client, all testing file systems mounted in this EC2.
+- During the test, 8 threads are running to write/read files in the file systems.
+- The test is done for write/read 2048 files of 100kb, and write/read 2048 files of 1mb.
+
+#### File System Benchmarks for 100kb Files
+| Setup                                                             | EC2/EBS Type            | Write IOPS (100kb) | Read IOPS (100kb) | Write Throughput (mb/sec) | Read Throughput (mb/sec) |
+|-------------------------------------------------------------------|-------------------------|--------------------|-------------------|---------------------------|--------------------------|
+| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS | 2092               | 2345              | 204                       | 229                      |
+| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 600gb st1 EBS | 2210               | 2342              | 215                       | 228                      |
+| Gluster Replicated Volume (3 bricks, native client)               | c5.large, 80gb gp2 EBS | 855                | 1654              | 83                        | 161                      |
+| Gluster Dispersed Volume (2 + 1 redundancy bricks, native client) | c5.large, 80gb gp2 EBS | 818                | 1036              | 79                        | 101                      |
+| Gluster Dispersed Volume (4 + 2 redundancy bricks, native client) | c5.large, 80gb gp2 EBS | 564                | 757               | 55                        | 74                       |
+| Gluster Dispersed Volume (2 + 1 redundancy bricks, nfs3 client)   | c5.large, 80gb gp2 EBS | 339                | 896               | 33                        | 87                       |
+| Amazon EBS (gp2)                                                  | c5.large, 10gb gp2 EBS  | 3203               | 1423              | 312                       | 138                      |
+| Amazon EFS (General purpose, bursting throughput)                 | /                       | 415                | 3337              | 40                        | 325                      |
+
+#### File System Benchmarks for 1mb Files
+| Setup                                                             | EC2/EBS Type            | Write IOPS (1mb) | Read IOPS (1mb) | Write Throughput (mb/sec) | Read Throughput (mb/sec) |
+|-------------------------------------------------------------------|-------------------------|------------------|-----------------|---------------------------|--------------------------|
+| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS  | 472              | 407             | 461                       | 398                      |
+| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 600gb st1 EBS | 517              | 408             | 505                       | 398                      |
+| Gluster Replicated Volume (3 bricks, native client)               | c5.large, 80gb gp2 EBS  | 174              | 285             | 170                       | 278                      |
+| Gluster Dispersed Volume (2 + 1 redundancy bricks, native client) | c5.large, 80gb gp2 EBS  | 269              | 281             | 263                       | 275                      |
+| Gluster Dispersed Volume (4 + 2 redundancy bricks, native client) | c5.large, 80gb gp2 EBS  | 205              | 200             | 210                       | 205                      |
+| Gluster Dispersed Volume (2 + 1 redundancy bricks, nfs3 client)   | c5.large, 80gb gp2 EBS  | 183              | 185             | 179                       | 181                      |
+| Amazon EBS (gp2)                                                  | c5.large, 80gb gp2 EBS  | 139              | 132             | 135                       | 129                      |
+| Amazon EFS (General purpose, bursting throughput)                 | /                       | 103              | 104             | 101                       | 101                      |
+
