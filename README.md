@@ -182,4 +182,4 @@ Basic filesystem performance benchmarks are collected using python script [small
 ### Cost of Running GlusterFS on AWS
 - ***EC2***, number of EC2s = number of bricks
 - ***EBS***, number of EBS volumes = number of bricks
-- ***Data transfer cost between AZs***, for best resiliancy the quick start deploys GlusterFS nodes into different AZs, data egress from one AZ to another incurs a charge.
+- ***Data transfer cost between AZs***, for the best resiliancy this quick start deploys GlusterFS nodes into different AZs, data egress from one AZ to another incurs a charge.
