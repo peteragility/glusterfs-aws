@@ -101,31 +101,31 @@ When ECs are launched they need to download and install Gluster related packages
 
 ### Performance Testing
 Basic file system performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
-- RHEL v8.2 EC2 (t3.medium) is used as the testing client, all testing file systems mounted in this EC2.
-- During the test, 8 threads are running to write/read files in the file systems.
-- The test is done for write/read 2048 files of 100kb, and write/read 2048 files of 1mb.
+- RHEL v8.2 EC2 (t3.medium) as the testing client, all file systems are mounted in this EC2.
+- 8 threads are running to write/read files in the file systems.
+- The test is done for write/read 2048 files of 100kb per thread, and repeat for write/read 2048 files of 1mb.
 
 #### File System Benchmarks for 100kb Files
 | Setup                                                             | EC2/EBS Type            | Write IOPS (100kb) | Read IOPS (100kb) | Write Throughput (mb/sec) | Read Throughput (mb/sec) |
 |-------------------------------------------------------------------|-------------------------|--------------------|-------------------|---------------------------|--------------------------|
-| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS | 2092               | 2345              | 204                       | 229                      |
-| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 600gb st1 EBS | 2210               | 2342              | 215                       | 228                      |
-| Gluster Replicated Volume (3 bricks, native client)               | c5.large, 80gb gp2 EBS | 855                | 1654              | 83                        | 161                      |
-| Gluster Dispersed Volume (2 + 1 redundancy bricks, native client) | c5.large, 80gb gp2 EBS | 818                | 1036              | 79                        | 101                      |
-| Gluster Dispersed Volume (4 + 2 redundancy bricks, native client) | c5.large, 80gb gp2 EBS | 564                | 757               | 55                        | 74                       |
-| Gluster Dispersed Volume (2 + 1 redundancy bricks, nfs3 client)   | c5.large, 80gb gp2 EBS | 339                | 896               | 33                        | 87                       |
+| Gluster **Distributed** Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS | 2092               | 2345              | 204                       | 229                      |
+| Gluster **Distributed** Volume (3 bricks, native client)              | c5.large, 600gb st1 EBS | 2210               | 2342              | 215                       | 228                      |
+| Gluster **Replicated** Volume (3 bricks, native client)               | c5.large, 80gb gp2 EBS | 855                | 1654              | 83                        | 161                      |
+| Gluster **Dispersed** Volume (2 + 1 redundancy bricks, native client) | c5.large, 80gb gp2 EBS | 818                | 1036              | 79                        | 101                      |
+| Gluster **Dispersed** Volume (4 + 2 redundancy bricks, native client) | c5.large, 80gb gp2 EBS | 564                | 757               | 55                        | 74                       |
+| Gluster **Dispersed** Volume (2 + 1 redundancy bricks, nfs3 client)   | c5.large, 80gb gp2 EBS | 339                | 896               | 33                        | 87                       |
 | Amazon EBS (gp2)                                                  | c5.large, 10gb gp2 EBS  | 3203               | 1423              | 312                       | 138                      |
 | Amazon EFS (General purpose, bursting throughput)                 | /                       | 415                | 3337              | 40                        | 325                      |
 
 #### File System Benchmarks for 1mb Files
 | Setup                                                             | EC2/EBS Type            | Write IOPS (1mb) | Read IOPS (1mb) | Write Throughput (mb/sec) | Read Throughput (mb/sec) |
 |-------------------------------------------------------------------|-------------------------|------------------|-----------------|---------------------------|--------------------------|
-| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS  | 472              | 407             | 461                       | 398                      |
-| Gluster Distributed Volume (3 bricks, native client)              | c5.large, 600gb st1 EBS | 517              | 408             | 505                       | 398                      |
-| Gluster Replicated Volume (3 bricks, native client)               | c5.large, 80gb gp2 EBS  | 174              | 285             | 170                       | 278                      |
-| Gluster Dispersed Volume (2 + 1 redundancy bricks, native client) | c5.large, 80gb gp2 EBS  | 269              | 281             | 263                       | 275                      |
-| Gluster Dispersed Volume (4 + 2 redundancy bricks, native client) | c5.large, 80gb gp2 EBS  | 205              | 200             | 210                       | 205                      |
-| Gluster Dispersed Volume (2 + 1 redundancy bricks, nfs3 client)   | c5.large, 80gb gp2 EBS  | 183              | 185             | 179                       | 181                      |
+| Gluster **Distributed** Volume (3 bricks, native client)              | c5.large, 80gb gp2 EBS  | 472              | 407             | 461                       | 398                      |
+| Gluster **Distributed** Volume (3 bricks, native client)              | c5.large, 600gb st1 EBS | 517              | 408             | 505                       | 398                      |
+| Gluster **Replicated** Volume (3 bricks, native client)               | c5.large, 80gb gp2 EBS  | 174              | 285             | 170                       | 278                      |
+| Gluster **Dispersed** Volume (2 + 1 redundancy bricks, native client) | c5.large, 80gb gp2 EBS  | 269              | 281             | 263                       | 275                      |
+| Gluster **Dispersed** Volume (4 + 2 redundancy bricks, native client) | c5.large, 80gb gp2 EBS  | 205              | 200             | 210                       | 205                      |
+| Gluster **Dispersed** Volume (2 + 1 redundancy bricks, nfs3 client)   | c5.large, 80gb gp2 EBS  | 183              | 185             | 179                       | 181                      |
 | Amazon EBS (gp2)                                                  | c5.large, 80gb gp2 EBS  | 139              | 132             | 135                       | 129                      |
 | Amazon EFS (General purpose, bursting throughput)                 | /                       | 103              | 104             | 101                       | 101                      |
 
