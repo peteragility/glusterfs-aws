@@ -34,8 +34,8 @@ The quick start implements the followings:
 ### Use Cases
 
 - **Cost effectiveness.** Provision a GlusterFS gives you the flexibility to choose the EC2 instance type, EBS volume type and no. of replica nodes, lower per GB/month price can be achieved if there is lower requriement on data durability/availability. Beware that EBS charges for provisioned storage while Amazon EFS only charges for actual storage used.
-- **Performance.** By choosing appropriate EC2/EBS types and Gluster volume type, high performance and cost effective Gluster filesystem can be built. For fully managed high performance shared storage, remmeber to have a look at [Amazon FSx for Lustre](https://aws.amazon.com/fsx).
-- **Service Availability.** In some AWS regions or in AWS Outposts, where Amazon EFS not yet available, you can build a GlusterFS using EC2/EBS for shared file storage.
+- **Performance.** By choosing appropriate EC2/EBS types and Gluster volume type, high performance and cost effective Gluster filesystem can be built. For fully managed high performance shared storage, remember to have a look at [Amazon FSx for Lustre](https://aws.amazon.com/fsx).
+- **Service Availability.** In some AWS regions or in [AWS Outposts](https://aws.amazon.com/outposts/), where Amazon EFS not yet available, you can build a GlusterFS using EC2/EBS for shared file storage.
 - **Lift and Shift GlusterFS to AWS.** If you are already using GlusterFS on-premises or in other clouds, and want the quickest way to migrate to AWS.
 
 ### Gluster Volume Type
@@ -46,7 +46,7 @@ A volume in Gluster is a logical collection of bricks where each brick is an exp
 
 The above Gluster volume types are supported in this quick start. Gluster also has **Distributed Replicated** and **Distributed Dispersed** volume types, they are not supported in this quick start, please refer to [Gluster documentation](https://docs.gluster.org/en/latest/Administrator%20Guide/Setting%20Up%20Volumes/)
 
-Here is a quick summary for different volume types:
+Here is a quick summary of different volume types:
 | Volume Type | Brick (EC2) Count | Redundancy Count | Filesystem Size  | Max. no. of EC2s can be down |
 |-------------|-------------------|------------------|------------------|------------------------------|
 | Distributed | n                 | /                | EBS Size * n     | 0                            |
@@ -55,9 +55,9 @@ Here is a quick summary for different volume types:
 
 > - Distributed volume has the best performance and bricks can be added very easily. But it has no redundancy at all, any EC2/EBS lost will cause data lost.
 > - In theory replicated volume can lost up to n - 1 nodes, for example if n = 3 the filesystem should be able to operate normally with only 1 node. However you will find that the filesystem is down if node count < 2, this is because the default quorum = 2 in this case to avoid [Split Brain](https://docs.gluster.org/en/latest/Administrator%20Guide/Split%20brain%20and%20ways%20to%20deal%20with%20it/) issue.
-> - For data durability, replicated volume can lost up to n - 1 nodes.
-> - For dispersed volume, k must be an integer smaller than n/2, if you want k >= n/2, pls use replicated volume instead.
-> - For best I/O performance, you should make sure `(n - k) = power of 2`, for example n=3 and k=1, n=6 and k=2, etc.
+> - Replicated volume can lost up to n - 1 nodes without data lost.
+> - For dispersed volume, k must be an integer smaller than n/2, if you want k >= n/2, use replicated volume instead.
+> - For best I/O performance of dispersed volume, make sure `(n - k) = power of 2`, for example n=3 and k=1, n=6 and k=2, etc.
 
 ### Usage
 
