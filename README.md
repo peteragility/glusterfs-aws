@@ -28,6 +28,7 @@ The quick start implements the followings:
   - [Filesystem Benchmarks for 100kb Files](#filesystem-benchmarks-for-100kb-files)
   - [Filesystem Benchmarks for 1mb Files](#filesystem-benchmarks-for-1mb-files)
   - [Key Takeaway](#key-takeaway)
+- [Cost of Running GlusterFS on AWS](cost-of-running-glusterfs-on-aws)
 
 ### Use Cases
 
@@ -177,3 +178,8 @@ Basic filesystem performance benchmarks are collected using python script [small
 - Gluster **Distributed** volume type has the best performance.
 
 > Notice that EBS (gp2) has a baseline IOPS of `3 * volume size` which can be bursted to 3,000 IOPS for an extended period of time ([detail](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html)). To achieve consistent IOPS performance, you can provision EBS of over 1TB in size.
+
+### Cost of Running GlusterFS on AWS
+- **EC2**, number of EC2s = number of bricks
+- **EBS**, number of EBS volumes = number of bricks
+- **Data transfer cost between AZs**, for best resiliancy the quick start deploys GlusterFS nodes into different AZs, data egress from one AZ to another incurs a charge.
