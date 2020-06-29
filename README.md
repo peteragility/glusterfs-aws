@@ -27,6 +27,7 @@ The quick start implements the followings:
 - [Performance Testing](#performance-testing)
   - [File System Benchmarks for 100kb Files](#file-system-benchmarks-for-100kb-files)
   - [File System Benchmarks for 1mb Files](#file-system-benchmarks-for-1mb-files)
+  - [Key Takeaway](#key-takeaway)
 - [Making changes to the code and customization](#making-changes-to-the-code-and-customization)
 - [Contributing](#contributing)
 
@@ -96,8 +97,30 @@ When ECs are launched they need to download and install Gluster related packages
     - **GlusterNFSEndpoint** <-- this is the NFSv3 mount point
 
 #### Mount GlusterFS by Native Client
+The Gluster Native Client is a FUSE-based client running in user space. Gluster Native Client is **the recommended method** for accessing volumes when high concurrency and high write performance is required.
+1. Install GlusterFS client in client machines by `yum install glusterfs-client` (redhat/centos/fedora) or `apt install glusterfs-client` (ubuntu/debian)
+2. Create a mount point directory at /mnt/gfs (or any name you preferred)
+3. Open /etc/fstab, append the following line, replace GlusterNLBEndpoint with the actual endpoint:
+    ```
+    GlusterNLBEndpoint:/gfs /mnt/gfs glusterfs defaults,_netdev 0 0
+    ```
+4. Run command: `sudo mount -a`
+5. Run command: `df`, you should be able to see volume info of GlusterFS at /mnt/gfs mount point if things go well.
+
+Notice that the GlusterNLBEndpoint only serves as a single endpoint for mounting and getting GlusterFS cluster info, the clients actually communicate with EC2s in the cluster directly when writing/reading files.
 
 #### Mount GlusterFS by NFSv3
+The quick start has setup a [NFS Ganesha server](https://docs.gluster.org/en/latest/Administrator%20Guide/NFS-Ganesha%20GlusterFS%20Integration/) and export GlusterFS via NFSv3 protocol, so every client machine can mount the GlusterFS with NFSv3.
+Remember this is **NOT** the recommend way to mount GlusterFS, but if the clients can not install GlusterFS native client or you want to use service like [AWS DataSync](https://aws.amazon.com/datasync/), this is the only solution.
+
+1. Most Linux distributions have NFS client packages included, if not, simply install the `nfs-common` package.
+2. Create a mount point directory at /mnt/gfsnfs (or any name you preferred)
+3. Open /etc/fstab, append the following line, replace GlusterNFSEndpoint with the actual NFS endpoint:
+    ```
+    GlusterNFSEndpoint:/gfs /mnt/gfsnfs nfs defaults 0 0
+    ```
+4. Run command: `sudo mount -a`
+5. Run command: `df`, you should be able to see volume info of GlusterFS at /mnt/gfsnfs mount point if things go well.
 
 ### Performance Testing
 Basic file system performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
@@ -129,3 +152,8 @@ Basic file system performance benchmarks are collected using python script [smal
 | Amazon EBS (gp2)                                                  | c5.large, 80gb gp2 EBS  | 139              | 132             | 135                       | 129                      |
 | Amazon EFS (General purpose, bursting throughput)                 | /                       | 103              | 104             | 101                       | 101                      |
 
+#### Key Takeaway
+- GlusterFS has better write performance than Amazon EFS for both 100kb and 1mb files.
+- While Amazon EFS has better read performance than GlusterFS for 100kb files.
+- Gluster **Distributed** volume type has the best performance.
+- Notice that EBS (gp2) has a baseline IOPS of `3 * volume size` which can be bursted to 3,000 IOPS for an extended period of time ([detail](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html)). To achieve consistent IOPS performance, you can provision EBS of over 1TB in size. 
