@@ -25,6 +25,7 @@ The quick start implements the followings:
   - [Mount GlusterFS by Native Client](#mount-glusterfs-by-native-client)
   - [Mount GlusterFS by NFSv3](#mount-glusterfs-by-nfsv3)
   - [Use GlusterFS in Kubernetes](#use-glusterfs-in-kubernetes)
+  - [Access GlusterFS EC2 Nodes](#access-glusterfs-ec2-nodes)
 - [Performance Testing](#performance-testing)
   - [Filesystem Benchmarks for 100kb Files](#filesystem-benchmarks-for-100kb-files)
   - [Filesystem Benchmarks for 1mb Files](#filesystem-benchmarks-for-1mb-files)
@@ -147,6 +148,9 @@ Remember this is **NOT** the recommend way to mount GlusterFS, but if the client
 
 #### Use GlusterFS in Kubernetes
 There is a [Container Storage Interface (CSI) Driver for GlusterFS](https://kubernetes-csi.github.io/docs/drivers.html) can be used with Kubernetes, so that multiple k8s pods can read/write the shared and persistant Gluster filesystem. You can also use the CSI driver with [Amazon EKS](https://aws.amazon.com/eks/).
+
+#### Access GlusterFS EC2 Nodes
+The EC2s that form the GlusterFS are using Ubuntu 18.04 AMI with AWS Systems Manager Agent (SSM Agent) pre-installed, you can access them by [Session Manager](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/session-manager.html).
 
 ### Performance Testing
 Basic filesystem performance benchmarks are collected using python script [smallfile](https://github.com/distributed-system-analysis/smallfile), the testing setup involves:
